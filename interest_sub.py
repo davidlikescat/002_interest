@@ -1,4 +1,4 @@
-# interest_sub.py - 은행별 분기 처리 버전
+# interest_sub.py - 올바른 계좌번호 및 투자자명 수정 버전
 
 import re
 import os
@@ -168,12 +168,12 @@ def create_text_message(distribution_results: dict, total_amount: int, bank_bran
     message += f"🏦 농협대출[납입도래]({account}) {month}월{day}일(이자:{total_amount:,}원예상)\n"
     message += f"▶관리점 : {bank_branch}\n\n"
     
-    # 기본 투자자 매핑 (필요시 확장 가능)
+    # 🔧 업데이트된 투자자 매핑 (투자자D: 박** → 전**)
     investor_mapping = {
         "투자자A": "이**",
         "투자자B": "양**", 
         "투자자C": "김**",
-        "투자자D": "박**"  # 고창농협 4번째 투자자
+        "투자자D": "전**"  # 🔧 박** → 전**로 변경
     }
     
     # 자동이체 고정금액
@@ -213,9 +213,9 @@ def create_text_message(distribution_results: dict, total_amount: int, bank_bran
     # 총 이자 표시
     message += f"📊 <i>총 이자: {total_amount:,}원</i>\n\n"
     
-    # 계좌 정보 추가
+    # 🔧 올바른 계좌번호로 수정 (3333159564139 - 3이 4개)
     message += f"💡 <b>아래 계좌로 입금해주세요.</b>\n"
-    message += f"💡 <b>333159564139 카카오뱅크 양**</b>"
+    message += f"💡 <b>3333159564139 카카오뱅크 양**</b>"
     
     return message
 

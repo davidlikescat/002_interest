@@ -5,9 +5,9 @@
     {"name": "투자자C", "percentage": 0.3333}
   ],
   "고창농협": [
-    {"name": "투자자A", "percentage": 0.25},
-    {"name": "투자자B", "percentage": 0.25},
-    {"name": "투자자C", "percentage": 0.25},
-    {"name": "투자자D", "percentage": 0.25}
+    {"name": "투자자A", "percentage": 0.4255},
+    {"name": "투자자B", "percentage": 0.2553},
+    {"name": "투자자C", "percentage": 0.1596},
+    {"name": "투자자D", "percentage": 0.1596}
   ]
 }
