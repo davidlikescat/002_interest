@@ -1,4 +1,4 @@
-# interest_sub.py - 올바른 계좌번호 및 투자자명 수정 버전
+# interest_sub.py - 수정된 버전
 
 import re
 import os
@@ -60,110 +60,127 @@ def load_investors_config(config_path: str = "investors.json") -> dict:
 def extract_interest_amount(message_content: str) -> tuple[int, str] | None:
     """
     메시지 내용에서 이자 금액과 농협 지점 이름을 추출합니다.
+    🔧 수정: 더 유연한 패턴 매칭
     """
     interest_amount = None
     bank_branch = None
 
-    # 1. 이자 금액 추출 패턴
-    pattern_amount1 = r"이자\s*:\s*([\d,]+)\s*원\s*예상"
-    match_amount1 = re.search(pattern_amount1, message_content)
+    print(f"🔍 이자 추출 시도: {message_content[:100]}...")
 
-    if match_amount1:
-        amount_str = match_amount1.group(1).replace(',', '')
-        try:
-            interest_amount = int(amount_str)
-        except ValueError:
-            print(f"❌ 금액 변환 실패 (패턴1): {amount_str}")
-            return None
+    # 🔧 개선된 이자 금액 추출 패턴들 (우선순위 순)
+    patterns = [
+        r'이자\s*[:：]\s*([0-9,]+)\s*원\s*예상',    # 이자: 492,602원예상
+        r'이자\s*[:：]\s*([0-9,]+)\s*원',          # 이자: 492,602원
+        r'이자\s*([0-9,]+)\s*원\s*예상',           # 이자 492,602원예상
+        r'이자\s*([0-9,]+)\s*원',                  # 이자 492,602원
+        r'\(이자\s*[:：]\s*([0-9,]+)\s*원',        # (이자: 492,602원
+        r'납입예상금액\s*[:：]\s*([0-9,]+)\s*원',   # 납입예상금액: 492,602원
+        r'([0-9,]+)\s*원\s*예상',                  # 492,602원예상
+        r'금액\s*[:：]\s*([0-9,]+)\s*원'           # 금액: 492,602원
+    ]
 
-    # 2. 대체 패턴
-    if interest_amount is None:
-        pattern_amount2 = r"납입예상금액\s*:\s*([\d,]+)\s*원"
-        match_amount2 = re.search(pattern_amount2, message_content)
-        if match_amount2:
-            amount_str = match_amount2.group(1).replace(',', '')
+    for i, pattern in enumerate(patterns, 1):
+        print(f"  패턴 {i}: {pattern}")
+        match = re.search(pattern, message_content)
+        if match:
+            amount_str = match.group(1).replace(',', '')
+            print(f"  ✅ 매치됨: '{match.group(1)}' → {amount_str}")
             try:
                 interest_amount = int(amount_str)
+                print(f"  💰 추출된 이자: {interest_amount:,}원")
+                break
             except ValueError:
-                print(f"❌ 금액 변환 실패 (패턴2): {amount_str}")
-                return None
-    
+                print(f"  ❌ 숫자 변환 실패: {amount_str}")
+                continue
+        else:
+            print(f"  ❌ 매치 안됨")
+
     if interest_amount is None:
+        print("⚠️ 모든 패턴에서 이자 금액을 찾을 수 없습니다!")
         return None
 
-    # 3. 은행 지점 이름 추출
-    if "고창농협" in message_content:
-        bank_branch = "고창농협"
-    elif "행안농협" in message_content:
-        bank_branch = "행안농협"
-    elif "부안중앙농협" in message_content:
-        bank_branch = "부안중앙농협"
-    elif "농협" in message_content:
-        bank_branch = "농협"
-    else:
-        bank_branch = "알 수 없음"
+    # 🔧 개선된 은행 지점 이름 추출
+    bank_patterns = [
+        (r'관리점\s*[:：]\s*([^☎\n\s]+)', 1),      # ▶관리점 : 고창농협
+        (r'▶관리점\s*[:：]\s*([^☎\n\s]+)', 1),     # ▶관리점 : 고창농협
+        (r'(고창농협)', 1),                         # 고창농협 직접 매치
+        (r'(부안중앙농협)', 1),                     # 부안중앙농협 직접 매치
+        (r'(행안농협)', 1),                         # 행안농협 직접 매치
+    ]
+
+    for pattern, group_idx in bank_patterns:
+        match = re.search(pattern, message_content)
+        if match:
+            bank_branch = match.group(group_idx).strip()
+            print(f"🏛️ 추출된 은행: '{bank_branch}'")
+            break
+
+    if bank_branch is None:
+        bank_branch = "부안중앙농협"  # 기본값
+        print(f"⚠️ 은행 지점을 찾을 수 없어 기본값 사용: {bank_branch}")
 
     return interest_amount, bank_branch
 
 def calculate_interest_distribution(interest_amount: int, bank_branch: str) -> dict:
     """
     은행 지점 정보에 따라 이자 금액을 배분합니다.
-    은행별로 다른 투자자 구성을 사용합니다.
+    🔧 수정: 수수료 계산 방식 변경 - 전체 금액에서 직접 투자자별 비율 적용
     """
+    print(f"📊 이자 배분 계산: {interest_amount:,}원 ({bank_branch})")
+    
     # investors.json에서 은행별 설정을 로드
     investors_config = load_investors_config()
     
+    distribution = {}
+    
     if investors_config and bank_branch in investors_config:
-        print(f"📊 {bank_branch} 투자자 설정 사용: {investors_config[bank_branch]}")
-        distribution = {}
+        print(f"✅ {bank_branch} 설정 파일 사용")
         
-        # 수수료 5% 고정
-        fee_amount = int(interest_amount * 0.05)
-        distribution["수수료"] = fee_amount
-        
-        # 나머지 95%를 투자자들에게 배분
-        remaining_amount = interest_amount - fee_amount
-        
+        # 🔧 수정: 전체 금액에서 직접 투자자별 비율 적용 (수수료 별도 계산 안함)
         for investor in investors_config[bank_branch]:
             name = investor['name']
             ratio = investor['percentage']
-            amount = int(remaining_amount * ratio)
+            amount = int(interest_amount * ratio)
             distribution[name] = amount
-        
+            print(f"  👤 {name}: {interest_amount:,} × {ratio:.4f} = {amount:,}원")
+            
         return distribution
     
-    # 🔧 수정된 부분: 고창농협 기본값도 4명으로 처리
+    # 기본 설정 사용
     print(f"⚠️ {bank_branch}에 대한 설정을 찾을 수 없음. 기본 설정 사용")
-    distribution = {}
-    
-    # 수수료 5% 고정
-    fee_amount = int(interest_amount * 0.05)
-    distribution["수수료"] = fee_amount
-    
-    # 나머지 95%를 배분
-    remaining_amount = interest_amount - fee_amount
     
     # 🔧 고창농협인 경우 4명 지분 배분, 그 외는 3명 균등 배분
     if "고창농협" in bank_branch:
-        # 고창농협 4명 지분 배분 (investors.json 데이터와 동일)
-        distribution["투자자A"] = int(remaining_amount * 0.4255)  # 42.55%
-        distribution["투자자B"] = int(remaining_amount * 0.2553)  # 25.53%
-        distribution["투자자C"] = int(remaining_amount * 0.1596)  # 15.96%
-        distribution["투자자D"] = int(remaining_amount * 0.1596)  # 15.96%
+        # 고창농협 4명 지분 배분 (전체 금액에서 직접 계산)
+        distribution["투자자A"] = int(interest_amount * 0.4255)  # 42.55%
+        distribution["투자자B"] = int(interest_amount * 0.2553)  # 25.53%
+        distribution["투자자C"] = int(interest_amount * 0.1596)  # 15.96%
+        distribution["투자자D"] = int(interest_amount * 0.1596)  # 15.96%
+        
+        print(f"  👤 투자자A: {interest_amount:,} × 0.4255 = {distribution['투자자A']:,}원")
+        print(f"  👤 투자자B: {interest_amount:,} × 0.2553 = {distribution['투자자B']:,}원")
+        print(f"  👤 투자자C: {interest_amount:,} × 0.1596 = {distribution['투자자C']:,}원")
+        print(f"  👤 투자자D: {interest_amount:,} × 0.1596 = {distribution['투자자D']:,}원")
     else:
-        # 부안중앙농협 등 기타: 3명 균등 배분
-        distribution["투자자A"] = int(remaining_amount * 0.3333)
-        distribution["투자자B"] = int(remaining_amount * 0.3334)  # 반올림 차이 흡수
-        distribution["투자자C"] = int(remaining_amount * 0.3333)
+        # 부안중앙농협 등 기타: 3명 균등 배분 (전체 금액에서 직접 계산)
+        distribution["투자자A"] = int(interest_amount * 0.3333)
+        distribution["투자자B"] = int(interest_amount * 0.3334)  # 반올림 차이 흡수
+        distribution["투자자C"] = int(interest_amount * 0.3333)
+        
+        print(f"  👤 투자자A: {interest_amount:,} × 0.3333 = {distribution['투자자A']:,}원")
+        print(f"  👤 투자자B: {interest_amount:,} × 0.3334 = {distribution['투자자B']:,}원")
+        print(f"  👤 투자자C: {interest_amount:,} × 0.3333 = {distribution['투자자C']:,}원")
     
     return distribution
 
 def create_text_message(distribution_results: dict, total_amount: int, bank_branch: str, original_message: str = "") -> str:
     """
-    요구사항에 맞는 텔레그램 메시지를 생성합니다. (수수료 제외, 계좌 정보 포함)
-    은행별로 다른 투자자 구성을 지원합니다.
+    요구사항에 맞는 텔레그램 메시지를 생성합니다.
+    🔧 수정: 더 정확한 메시지 생성
     """
     import re
+    
+    print(f"📝 텔레그램 메시지 생성: {total_amount:,}원 ({bank_branch})")
     
     # 원본 메시지에서 정보 추출
     date_match = re.search(r'(\d{2})월(\d{2})일', original_message)
@@ -173,27 +190,29 @@ def create_text_message(distribution_results: dict, total_amount: int, bank_bran
     day = date_match.group(2) if date_match else datetime.now().strftime('%d')
     account = account_match.group(1) if account_match else "061-2210-35**-**"
     
+    print(f"  📅 추출된 날짜: {month}월{day}일")
+    print(f"  🏦 추출된 계좌: {account}")
+    
     message = f"<b>{bank_branch} 이자 추가납입 요청 드립니다.</b>\n\n"
     message += f"🏦 농협대출[납입도래]({account}) {month}월{day}일(이자:{total_amount:,}원예상)\n"
     message += f"▶관리점 : {bank_branch}\n\n"
     
-    # 🔧 업데이트된 투자자 매핑 (투자자D: 박** → 전**)
+    # 🔧 업데이트된 투자자 매핑
     investor_mapping = {
         "투자자A": "이**",
         "투자자B": "양**", 
         "투자자C": "김**",
-        "투자자D": "전**"  # 🔧 박** → 전**로 변경
+        "투자자D": "전**"
     }
     
     # 자동이체 고정금액
     AUTO_TRANSFER_AMOUNT = 36833
     
-    # 수수료를 제외한 투자자들만 처리
-    investors_only = {k: v for k, v in distribution_results.items() 
-                     if "수수료" not in k and "잔여금" not in k}
-    
-    for name, interest_amount in investors_only.items():
+    # 투자자별 처리
+    for name, interest_amount in distribution_results.items():
         display_name = investor_mapping.get(name, name)
+        
+        print(f"  👤 {display_name} 처리: {interest_amount:,}원")
         
         if name == "투자자A":
             # 투자자A: 자동이체 36,833원 차감 후 나머지 청구
@@ -222,10 +241,11 @@ def create_text_message(distribution_results: dict, total_amount: int, bank_bran
     # 총 이자 표시
     message += f"📊 <i>총 이자: {total_amount:,}원</i>\n\n"
     
-    # 🔧 올바른 계좌번호로 수정 (3333159564139 - 3이 4개)
+    # 🔧 올바른 계좌번호로 수정
     message += f"💡 <b>아래 계좌로 입금해주세요.</b>\n"
     message += f"💡 <b>3333159564139 카카오뱅크 양**</b>"
     
+    print("✅ 텔레그램 메시지 생성 완료")
     return message
 
 def create_image_message(distribution_results: dict, total_amount: int, bank_branch: str) -> str:
