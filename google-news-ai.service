@@ -1,0 +1,32 @@
+[Unit]
+Description=Google News AI Agent
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=davidlikessangria
+Group=davidlikessangria
+WorkingDirectory=/home/davidlikessangria/google-news-ai
+ExecStart=/usr/bin/python3 /home/davidlikessangria/google-news-ai/main.py schedule
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+
+# 환경변수
+Environment=PYTHONPATH=/home/davidlikessangria/google-news-ai
+Environment=PYTHONUNBUFFERED=1
+
+# 로그 설정
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=google-news-ai
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/davidlikessangria/google-news-ai/logs
+
+[Install]
+WantedBy=multi-user.target

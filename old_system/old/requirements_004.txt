@@ -1,0 +1,44 @@
+# 004 Google News AI 자동화 프로젝트 의존성
+
+# 핵심 라이브러리
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+feedparser>=6.0.10
+
+# OpenAI API
+openai>=1.0.0
+
+# Notion API
+notion-client>=2.2.1
+
+# Telegram Bot
+python-telegram-bot>=20.0
+
+# 환경 변수 관리
+python-dotenv>=1.0.0
+
+# HTML/XML 파싱
+lxml>=4.9.0
+
+# 날짜/시간 처리
+python-dateutil>=2.8.0
+
+# 로깅
+logging>=0.4.9.6
+
+# URL 처리
+urllib3>=2.0.0
+
+# 정규표현식 (기본 내장)
+# re
+
+# JSON 처리 (기본 내장)
+# json
+
+# 시간 처리 (기본 내장)
+# time
+# datetime
+
+# 파일 시스템 (기본 내장)
+# os
+# sys

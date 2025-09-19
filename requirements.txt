@@ -1,0 +1,17 @@
+# Google News AI Agent v2.0 with Google Sheets - 의존성
+
+# 기본 패키지
+requests>=2.31.0
+python-dotenv>=1.0.0
+schedule>=1.2.0
+beautifulsoup4>=4.12.0
+feedparser>=6.0.0
+
+# HTML 파싱 지원
+lxml>=4.9.0
+
+# Google Sheets 연동
+gspread>=5.10.0
+google-auth>=2.22.0
+google-auth-oauthlib>=1.0.0
+google-auth-httplib2>=0.1.0

@@ -25,12 +25,8 @@ try:
         print("💡 기존 notion_saver가 없어서 simple_notion을 사용합니다")
     
     # 텔레그램 모듈
-    try:
-        from telegram_sender import TelegramSender
-    except ImportError:
-        from simple_telegram import TelegramSender
-        print("💡 기존 telegram_sender가 없어서 simple_telegram을 사용합니다")
-        
+    from telegram_sender import TelegramSender
+    
 except ImportError as e:
     print(f"❌ 모듈 import 오류: {e}")
     print("💡 필요한 모듈들이 있는지 확인하세요")

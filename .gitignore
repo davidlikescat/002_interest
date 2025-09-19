@@ -1,0 +1,108 @@
+# Google News AI Agent - .gitignore
+
+# 환경변수 및 설정 파일
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# Google Sheets 인증 파일
+credential.json
+credentials.json
+*credential*.json
+service-account*.json
+
+# Python 캐시 및 컴파일 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 가상환경
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 운영체제 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 로그 파일
+*.log
+logs/
+news_agent.log
+
+# 임시 파일
+tmp/
+temp/
+*.tmp
+*.bak
+
+# 보고서 및 출력 파일
+reports/
+output/
+*.csv
+*.xlsx
+
+# 테스트 커버리지
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 배포 관련
+docker-compose.override.yml
+.dockerignore
+
+# 로컬 설정
+local_settings.py
+settings_local.py
+
+# 데이터베이스
+*.db
+*.sqlite3
+
+# 기타
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json

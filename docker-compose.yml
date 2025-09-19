@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  google-news-ai:
+    build: .
+    container_name: google-news-ai-agent
+    restart: unless-stopped
+
+    # 환경변수 파일
+    env_file:
+      - .env
+
+    # 볼륨 마운트
+    volumes:
+      - ./logs:/app/logs
+      - ./credentials.json:/app/credentials.json:ro  # 읽기 전용
+
+    # 네트워크
+    networks:
+      - news-network
+
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "python3", "-c", "from config import Config; Config.validate_config()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # 로그 설정
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  news-network:
+    driver: bridge
+
+# 개발용 오버라이드는 docker-compose.override.yml 파일 사용
