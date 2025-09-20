@@ -10,6 +10,10 @@ import os
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -55,67 +59,44 @@ class Notifier:
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         # 기본 성공 메시지
-        message = f"""🤖 <b>Google News AI 수집 완료</b>
+        message = f"""🤖 <b>AI 뉴스 수집 완료</b>
 
 📅 <b>수집 시간:</b> {current_time}
 📊 <b>수집 기사:</b> {len(articles)}개
 
 """
 
-        # 기사 요약 (최대 5개)
+        # 기사 요약 (최대 5개만 표시)
         if articles:
-            message += "📰 <b>수집된 주요 뉴스:</b>\n"
+            message += "📰 <b>주요 뉴스:</b>\n"
 
             for i, article in enumerate(articles[:5], 1):
                 title = article.get('title', 'No Title')
                 source = article.get('source', 'Unknown')
-                keywords = article.get('found_keywords', [])
 
                 # 제목 길이 제한
-                if len(title) > 60:
-                    title = title[:60] + "..."
+                if len(title) > 50:
+                    title = title[:50] + "..."
 
                 message += f"{i}. <b>{title}</b>\n"
-                message += f"   📰 {source}"
-
-                if keywords:
-                    message += f" | 🏷️ {', '.join(keywords[:3])}"
-
-                message += "\n\n"
+                message += f"   📰 {source}\n\n"
 
             # 더 많은 기사가 있다면
             if len(articles) > 5:
                 message += f"⋯ 외 {len(articles) - 5}개 기사\n\n"
 
-        # 키워드 통계
-        all_keywords = []
-        sources = set()
-
-        for article in articles:
-            all_keywords.extend(article.get('found_keywords', []))
-            sources.add(article.get('source', 'Unknown'))
-
-        if all_keywords:
-            # 키워드 빈도 계산
-            keyword_count = {}
-            for kw in all_keywords:
-                keyword_count[kw] = keyword_count.get(kw, 0) + 1
-
-            # 상위 키워드
-            top_keywords = sorted(keyword_count.items(), key=lambda x: x[1], reverse=True)[:5]
-            keyword_text = ', '.join([f"#{kw}({count})" for kw, count in top_keywords])
-
-            message += f"🏷️ <b>주요 키워드:</b> {keyword_text}\n"
-
-        message += f"📰 <b>언론사:</b> {len(sources)}곳\n"
-
-        # Notion 링크
+        # Notion 링크 (전체 기사 확인용)
         if notion_url:
-            message += f"\n📋 <b>상세 보기:</b> <a href='{notion_url}'>Notion에서 확인</a>\n"
+            message += f"📋 <b>전체 기사 보기:</b> <a href='{notion_url}'>여기를 클릭하세요</a>\n\n"
 
-        # 시스템 정보
-        message += f"\n🤖 <i>Google News AI Agent v2.0</i>"
-        message += f"\n💰 <i>OpenAI API 비용: $0.00</i>"
+        # 개발자 정보
+        message += """━━━━━━━━━━━━━━━━━━━━
+<b>개발자:</b> Joonmo Yang
+<b>시스템:</b> Google News Crawler v1.5
+<b>기술스택:</b> Python, Google News RSS, Notion API, Telegram Bot API, BeautifulSoup4, Feedparser, Schedule, Google Sheets API
+<b>문의:</b> davidlikescat@icloud.com
+
+© 2025 Joonmo Yang. Google News AI Automation. All rights reserved."""
 
         return message
 
