@@ -60,11 +60,11 @@ class StorageManager:
             # 페이지 제목
             title = f"🤖 AI News - {today} {current_time}"
 
-            # 기본 페이지 데이터
+            # Title 속성으로 먼저 시도
             page_data = {
                 "parent": {"database_id": self.database_id},
                 "properties": {
-                    "Name": {  # Notion의 기본 제목 속성
+                    "Title": {
                         "title": [
                             {
                                 "type": "text",
@@ -75,12 +75,27 @@ class StorageManager:
                 }
             }
 
-            # 추가 속성들 (있으면 추가)
-            self._add_optional_properties(page_data, articles, today)
-
             # 페이지 생성 API 호출
             url = "https://api.notion.com/v1/pages"
             response = requests.post(url, headers=self.headers, json=page_data, timeout=30)
+
+            # Title이 실패하면 Name으로 시도
+            if response.status_code != 200:
+                logger.warning(f"Title 속성 실패: {response.status_code} - {response.text}")
+                logger.info("Name 속성으로 재시도...")
+
+                page_data["properties"] = {
+                    "Name": {
+                        "title": [
+                            {
+                                "type": "text",
+                                "text": {"content": title}
+                            }
+                        ]
+                    }
+                }
+
+                response = requests.post(url, headers=self.headers, json=page_data, timeout=30)
 
             if response.status_code == 200:
                 page_result = response.json()
@@ -99,31 +114,6 @@ class StorageManager:
             logger.error(f"페이지 생성 중 오류: {e}")
             return None
 
-    def _add_optional_properties(self, page_data: Dict, articles: List[Dict], date: str):
-        """선택적 속성들 추가 (오류가 발생해도 무시)"""
-        try:
-            # 날짜 속성
-            page_data["properties"]["Date"] = {
-                "date": {"start": date}
-            }
-
-            # 기사 수
-            page_data["properties"]["Articles"] = {
-                "number": len(articles)
-            }
-
-            # 카테고리
-            page_data["properties"]["Category"] = {
-                "select": {"name": "AI News"}
-            }
-
-            # 상태
-            page_data["properties"]["Status"] = {
-                "select": {"name": "Published"}
-            }
-
-        except Exception as e:
-            logger.warning(f"선택적 속성 추가 중 오류 (무시됨): {e}")
 
     def _add_page_content(self, page_id: str, articles: List[Dict]):
         """페이지에 기사 내용 추가"""
